@@ -1,0 +1,14 @@
+export default function AboutSection({ content }) {
+  const { title, text } = content || {};
+
+  return (
+    <section className="about-intro-section" id="about-intro">
+      <div className="about-intro-label">
+        {title || 'About Us'}
+      </div>
+      <div className="about-intro-content">
+        {text && <p className="about-intro-text">{text}</p>}
+      </div>
+    </section>
+  );
+}
