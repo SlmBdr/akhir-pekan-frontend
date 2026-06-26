@@ -7,6 +7,17 @@ export default function ShowDetailPage({ params: paramsPromise }) {
   const slug = params.slug;
   const [show, setShow] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activePhotoIndex, setActivePhotoIndex] = useState(null);
+
+  const handlePrevPhoto = (e) => {
+    e.stopPropagation();
+    setActivePhotoIndex((prev) => (prev === 0 ? show.metadata.galleryImages.length - 1 : prev - 1));
+  };
+
+  const handleNextPhoto = (e) => {
+    e.stopPropagation();
+    setActivePhotoIndex((prev) => (prev === show.metadata.galleryImages.length - 1 ? 0 : prev + 1));
+  };
 
   useEffect(() => {
     const fetchShow = async () => {
@@ -100,9 +111,169 @@ export default function ShowDetailPage({ params: paramsPromise }) {
         </div>
 
         {/* Content Body */}
-        <div style={{ fontSize: '1.1rem', lineHeight: '1.8', whiteSpace: 'pre-wrap' }}>
-          {show.content}
-        </div>
+        <div 
+          style={{ fontSize: '1.1rem', lineHeight: '1.8' }}
+          dangerouslySetInnerHTML={{ __html: show.content }}
+        />
+
+        {/* Photo Gallery & Slideshow */}
+        {show.metadata?.galleryImages && show.metadata.galleryImages.length > 0 && (
+          <div style={{ marginTop: '4rem', borderTop: '1px solid rgba(240, 240, 242, 0.08)', paddingTop: '3rem' }}>
+            <h3 style={{ fontFamily: 'var(--font-serif)', color: 'var(--accent-gold)', fontSize: '1.5rem', marginBottom: '2rem', letterSpacing: '0.05em' }}>DOKUMENTASI PENTAS</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
+              {show.metadata.galleryImages.map((imgUrl, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => setActivePhotoIndex(idx)}
+                  style={{
+                    position: 'relative',
+                    aspectRatio: '3/2',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    transition: 'all 0.3s ease',
+                  }}
+                  className="gallery-item-hover"
+                >
+                  <img
+                    src={imgUrl}
+                    alt={`Dokumentasi ${show.title} - ${idx + 1}`}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
+                    className="gallery-img-hover"
+                  />
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    background: 'rgba(0,0,0,0.5)',
+                    opacity: 0,
+                    transition: 'opacity 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '1.5rem'
+                  }} className="gallery-overlay-hover">
+                    <span>🔍</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Custom Hover CSS */}
+            <style>{`
+              .gallery-item-hover:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+                border-color: var(--accent-gold);
+              }
+              .gallery-item-hover:hover .gallery-img-hover {
+                transform: scale(1.05);
+              }
+              .gallery-item-hover:hover .gallery-overlay-hover {
+                opacity: 1;
+              }
+            `}</style>
+          </div>
+        )}
+
+        {/* Lightbox Modal */}
+        {activePhotoIndex !== null && show.metadata?.galleryImages && (
+          <div
+            onClick={() => setActivePhotoIndex(null)}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              backgroundColor: 'rgba(7, 7, 8, 0.95)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              userSelect: 'none'
+            }}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setActivePhotoIndex(null)}
+              style={{
+                position: 'absolute',
+                top: '2rem',
+                right: '2rem',
+                background: 'none',
+                border: 'none',
+                color: 'white',
+                fontSize: '2rem',
+                cursor: 'pointer',
+                opacity: 0.8,
+                transition: 'opacity 0.2s',
+              }}
+            >
+              ✕
+            </button>
+
+            {/* Navigation buttons */}
+            <button
+              onClick={handlePrevPhoto}
+              style={{
+                position: 'absolute',
+                left: '2rem',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '50%',
+                color: 'white',
+                width: '50px',
+                height: '50px',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.2s'
+              }}
+            >
+              ‹
+            </button>
+
+            <div style={{ maxWidth: '80%', maxHeight: '80%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <img
+                src={show.metadata.galleryImages[activePhotoIndex]}
+                alt={`Lightbox view`}
+                style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain', borderRadius: '4px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}
+              />
+              <div style={{ color: 'var(--text-muted)', marginTop: '1rem', fontFamily: 'var(--font-serif)', fontSize: '0.9rem' }}>
+                {activePhotoIndex + 1} / {show.metadata.galleryImages.length}
+              </div>
+            </div>
+
+            <button
+              onClick={handleNextPhoto}
+              style={{
+                position: 'absolute',
+                right: '2rem',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '50%',
+                color: 'white',
+                width: '50px',
+                height: '50px',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.2s'
+              }}
+            >
+              ›
+            </button>
+          </div>
+        )}
 
         <div style={{ marginTop: '5rem', borderTop: '1px solid rgba(240, 240, 242, 0.05)', paddingTop: '2rem' }}>
           <Link href="/our-show" style={{ fontFamily: 'var(--font-serif)', color: 'var(--accent-gold)', letterSpacing: '0.1em', textTransform: 'uppercase', fontSize: '0.85rem' }}>

@@ -1,6 +1,7 @@
 import './globals.css';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import Script from 'next/script';
 
 export const metadata = {
   title: 'Teater Akhir Pekan | Di mana Sinema Bertemu Panggung Teater',
@@ -19,6 +20,10 @@ export default function RootLayout({ children }) {
           </main>
           <Footer />
         </div>
+        <Script 
+          src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js" 
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );

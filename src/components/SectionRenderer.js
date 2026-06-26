@@ -4,6 +4,8 @@ import ShowGridSection from './sections/ShowGridSection';
 import ArticleFeedSection from './sections/ArticleFeedSection';
 import ContactSection from './sections/ContactSection';
 import CollabSection from './sections/CollabSection';
+import GallerySection from './sections/GallerySection';
+import CustomContentSection from './sections/CustomContentSection';
 
 const sectionComponents = {
   'hero': HeroSection,
@@ -12,6 +14,8 @@ const sectionComponents = {
   'article-feed': ArticleFeedSection,
   'contact-form': ContactSection,
   'collab-form': CollabSection,
+  'gallery': GallerySection,
+  'custom-content': CustomContentSection,
 };
 
 export default function SectionRenderer({ sections }) {

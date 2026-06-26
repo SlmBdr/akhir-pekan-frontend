@@ -18,6 +18,7 @@ import {
   AlertCircle,
   X
 } from 'lucide-react';
+import RichTextEditor from '@/components/RichTextEditor';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -279,7 +280,9 @@ export default function AdminDashboardPage() {
       'showcase-grid': { title: 'JADWAL PENTAS TERBARU', limit: 6 },
       'article-feed': { title: 'SOROTAN HARI INI', limit: 6 },
       'contact-form': { title: 'KONTAK TIM KAMI', text: 'Tuliskan petunjuk pengisian kontak form.' },
-      'collab-form': { title: 'AJUKAN KOLABORASI', text: 'Deskripsikan tawaran kerja sama di sini.' }
+      'collab-form': { title: 'AJUKAN KOLABORASI', text: 'Deskripsikan tawaran kerja sama di sini.' },
+      gallery: { title: 'DOKUMENTASI PERTUNJUKAN' },
+      'custom-content': { title: 'JUDUL KUSTOM', subtitle: 'SUBTITLE', text: 'Tulis deskripsi konten di sini.', image: '', imagePosition: 'left', bgImage: '', bgColor: '#070708', buttonText: '', buttonLink: '' }
     };
 
     const newSection = {
@@ -414,6 +417,51 @@ export default function AdminDashboardPage() {
     setPendingArticleFile(file);
   };
 
+  const handleUploadGalleryImages = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    showNotification('Mengunggah gambar galeri...', 'success');
+    
+    const uploadedUrls = [];
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        const res = await fetch(`${API_URL}/api/upload`, {
+          method: 'POST',
+          headers: getHeaders(false),
+          body: formData,
+          credentials: 'include'
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          uploadedUrls.push(data.url);
+        } else {
+          showNotification(`Gagal mengunggah ${file.name}`, 'error');
+        }
+      } catch (err) {
+        console.error('Error uploading gallery image', err);
+        showNotification(`Error saat mengunggah ${file.name}`, 'error');
+      }
+    }
+
+    if (uploadedUrls.length > 0) {
+      setArticleForm(prev => ({
+        ...prev,
+        galleryImages: [...(prev.galleryImages || []), ...uploadedUrls]
+      }));
+      showNotification(`${uploadedUrls.length} gambar berhasil ditambahkan ke galeri!`, 'success');
+    }
+  };
+
+  const handleRemoveGalleryImage = (indexToRemove) => {
+    setArticleForm(prev => ({
+      ...prev,
+      galleryImages: (prev.galleryImages || []).filter((_, idx) => idx !== indexToRemove)
+    }));
+  };
+
   const handleOpenArticleCreate = () => {
     setArticleEditId(null);
     setPendingArticleFile(null);
@@ -425,7 +473,8 @@ export default function AdminDashboardPage() {
       thumbnailUrl: '',
       eventDate: '',
       eventLocation: '',
-      ticketLink: ''
+      ticketLink: '',
+      galleryImages: []
     });
     setShowArticleForm(true);
   };
@@ -441,7 +490,8 @@ export default function AdminDashboardPage() {
       thumbnailUrl: art.thumbnailUrl || '',
       eventDate: art.metadata?.eventDate ? art.metadata.eventDate.split('T')[0] : '',
       eventLocation: art.metadata?.eventLocation || '',
-      ticketLink: art.metadata?.ticketLink || ''
+      ticketLink: art.metadata?.ticketLink || '',
+      galleryImages: art.metadata?.galleryImages || []
     });
     setShowArticleForm(true);
   };
@@ -488,7 +538,8 @@ export default function AdminDashboardPage() {
         metadata: {
           eventDate: articleForm.eventDate || undefined,
           eventLocation: articleForm.eventLocation || undefined,
-          ticketLink: articleForm.ticketLink || undefined
+          ticketLink: articleForm.ticketLink || undefined,
+          galleryImages: articleForm.galleryImages || []
         }
       };
 
@@ -504,6 +555,7 @@ export default function AdminDashboardPage() {
         setPendingArticleFile(null);
         setShowArticleForm(false);
         setRefreshTrigger(prev => prev + 1);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         showNotification('Gagal menyimpan artikel.', 'error');
       }
@@ -694,6 +746,12 @@ export default function AdminDashboardPage() {
                     <button onClick={() => handleAddSection('collab-form')} className="btn btn-secondary" style={{ fontSize: '0.75rem', width: '100%', justifyContent: 'flex-start', padding: '0.6rem 1rem' }}>
                       <Plus size={14} style={{ marginRight: '0.5rem' }} /> Collab Form
                     </button>
+                    <button onClick={() => handleAddSection('gallery')} className="btn btn-secondary" style={{ fontSize: '0.75rem', width: '100%', justifyContent: 'flex-start', padding: '0.6rem 1rem' }}>
+                      <Plus size={14} style={{ marginRight: '0.5rem' }} /> Gallery Section
+                    </button>
+                    <button onClick={() => handleAddSection('custom-content')} className="btn btn-secondary" style={{ fontSize: '0.75rem', width: '100%', justifyContent: 'flex-start', padding: '0.6rem 1rem' }}>
+                      <Plus size={14} style={{ marginRight: '0.5rem' }} /> Custom Content
+                    </button>
                   </div>
                 </div>
 
@@ -767,7 +825,7 @@ export default function AdminDashboardPage() {
                               </div>
                               <div className="form-group" style={{ gridColumn: 'span 2' }}>
                                 <label className="form-label" style={{ fontSize: '0.65rem' }}>Teks Deskripsi</label>
-                                <textarea rows="3" className="form-input" style={{ padding: '0.4rem', fontFamily: 'var(--font-sans)' }} value={sec.content.text || ''} onChange={(e) => handleUpdateSectionContent(sec.id, 'text', e.target.value)}></textarea>
+                                <RichTextEditor value={sec.content.text || ''} onChange={(val) => handleUpdateSectionContent(sec.id, 'text', val)} />
                               </div>
                             </>
                           )}
@@ -793,6 +851,84 @@ export default function AdminDashboardPage() {
                               <div className="form-group" style={{ gridColumn: 'span 2' }}>
                                 <label className="form-label" style={{ fontSize: '0.65rem' }}>Teks Deskripsi</label>
                                 <textarea rows="2" className="form-input" style={{ padding: '0.4rem', fontFamily: 'var(--font-sans)' }} value={sec.content.text || ''} onChange={(e) => handleUpdateSectionContent(sec.id, 'text', e.target.value)}></textarea>
+                              </div>
+                            </>
+                          )}
+
+                          {sec.type === 'gallery' && (
+                            <>
+                              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                                <label className="form-label" style={{ fontSize: '0.65rem' }}>Judul Galeri</label>
+                                <input type="text" className="form-input" style={{ padding: '0.4rem' }} value={sec.content.title || ''} onChange={(e) => handleUpdateSectionContent(sec.id, 'title', e.target.value)} />
+                              </div>
+                            </>
+                          )}
+
+                          {sec.type === 'custom-content' && (
+                            <>
+                              <div className="form-group">
+                                <label className="form-label" style={{ fontSize: '0.65rem' }}>Sub Title / Label</label>
+                                <input type="text" className="form-input" style={{ padding: '0.4rem' }} value={sec.content.subtitle || ''} onChange={(e) => handleUpdateSectionContent(sec.id, 'subtitle', e.target.value)} />
+                              </div>
+                              <div className="form-group">
+                                <label className="form-label" style={{ fontSize: '0.65rem' }}>Main Title</label>
+                                <input type="text" className="form-input" style={{ padding: '0.4rem' }} value={sec.content.title || ''} onChange={(e) => handleUpdateSectionContent(sec.id, 'title', e.target.value)} />
+                              </div>
+                              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                                <label className="form-label" style={{ fontSize: '0.65rem' }}>Teks Deskripsi / Area Teks</label>
+                                <RichTextEditor value={sec.content.text || ''} onChange={(val) => handleUpdateSectionContent(sec.id, 'text', val)} />
+                              </div>
+                              <div className="form-group">
+                                <label className="form-label" style={{ fontSize: '0.65rem' }}>Foto/Media Utama (URL or Upload)</label>
+                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                  <input type="text" className="form-input" style={{ padding: '0.4rem', flex: 1 }} value={sec.content.image || ''} onChange={(e) => handleUpdateSectionContent(sec.id, 'image', e.target.value)} placeholder="Tautan gambar" />
+                                  <label className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.7rem', cursor: 'pointer', margin: 0, whiteSpace: 'nowrap' }}>
+                                    Unggah
+                                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleUploadImage(e, (url) => handleUpdateSectionContent(sec.id, 'image', url))} />
+                                  </label>
+                                </div>
+                                {sec.content.image && (
+                                  <div style={{ marginTop: '0.5rem', width: '120px', height: '67px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                                    <img src={sec.content.image} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="form-group">
+                                <label className="form-label" style={{ fontSize: '0.65rem' }}>Posisi Foto Utama</label>
+                                <select className="form-select" style={{ padding: '0.4rem' }} value={sec.content.imagePosition || 'left'} onChange={(e) => handleUpdateSectionContent(sec.id, 'imagePosition', e.target.value)}>
+                                  <option value="left">Kiri (Teks di Kanan)</option>
+                                  <option value="right">Kanan (Teks di Kiri)</option>
+                                </select>
+                              </div>
+                              <div className="form-group">
+                                <label className="form-label" style={{ fontSize: '0.65rem' }}>Tombol Aksi: Teks</label>
+                                <input type="text" className="form-input" style={{ padding: '0.4rem' }} value={sec.content.buttonText || ''} onChange={(e) => handleUpdateSectionContent(sec.id, 'buttonText', e.target.value)} placeholder="Misal: Hubungi Kami" />
+                              </div>
+                              <div className="form-group">
+                                <label className="form-label" style={{ fontSize: '0.65rem' }}>Tombol Aksi: Link/Rute</label>
+                                <input type="text" className="form-input" style={{ padding: '0.4rem' }} value={sec.content.buttonLink || ''} onChange={(e) => handleUpdateSectionContent(sec.id, 'buttonLink', e.target.value)} placeholder="Misal: /contact" />
+                              </div>
+                              <div className="form-group">
+                                <label className="form-label" style={{ fontSize: '0.65rem' }}>Warna Latar Belakang (Solid Color)</label>
+                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                  <input type="color" style={{ width: '40px', height: '30px', padding: 0, border: 'none', background: 'none', cursor: 'pointer' }} value={sec.content.bgColor || '#070708'} onChange={(e) => handleUpdateSectionContent(sec.id, 'bgColor', e.target.value)} />
+                                  <input type="text" className="form-input" style={{ padding: '0.4rem', flex: 1 }} value={sec.content.bgColor || '#070708'} onChange={(e) => handleUpdateSectionContent(sec.id, 'bgColor', e.target.value)} />
+                                </div>
+                              </div>
+                              <div className="form-group">
+                                <label className="form-label" style={{ fontSize: '0.65rem' }}>Gambar Latar Belakang (URL or Upload)</label>
+                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                  <input type="text" className="form-input" style={{ padding: '0.4rem', flex: 1 }} value={sec.content.bgImage || ''} onChange={(e) => handleUpdateSectionContent(sec.id, 'bgImage', e.target.value)} placeholder="Tautan gambar" />
+                                  <label className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.7rem', cursor: 'pointer', margin: 0, whiteSpace: 'nowrap' }}>
+                                    Pilih File
+                                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleSelectPageImage(e, sec.id)} />
+                                  </label>
+                                </div>
+                                {sec.content.bgImage && (
+                                  <div style={{ marginTop: '0.5rem', width: '120px', height: '67px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                                    <img src={sec.content.bgImage} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  </div>
+                                )}
                               </div>
                             </>
                           )}
@@ -866,25 +1002,67 @@ export default function AdminDashboardPage() {
 
                   {/* SHOW-SPECIFIC METADATA FIELDS */}
                   {articleForm.category === 'show' && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginTop: '1rem', border: '1px solid rgba(207,168,107,0.1)', padding: '1.5rem', backgroundColor: 'rgba(20,20,23,0.3)' }}>
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="form-label">Tanggal Pertunjukan</label>
-                        <input type="date" className="form-input" value={articleForm.eventDate} onChange={(e) => setArticleForm({ ...articleForm, eventDate: e.target.value })} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem', border: '1px solid rgba(207,168,107,0.1)', padding: '1.5rem', backgroundColor: 'rgba(20,20,23,0.3)' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label className="form-label">Tanggal Pertunjukan</label>
+                          <input type="date" className="form-input" value={articleForm.eventDate} onChange={(e) => setArticleForm({ ...articleForm, eventDate: e.target.value })} />
+                        </div>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label className="form-label">Lokasi Event</label>
+                          <input type="text" className="form-input" value={articleForm.eventLocation} onChange={(e) => setArticleForm({ ...articleForm, eventLocation: e.target.value })} placeholder="e.g. Gedung Kesenian Jakarta" />
+                        </div>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label className="form-label">Tautan Beli Tiket</label>
+                          <input type="text" className="form-input" value={articleForm.ticketLink} onChange={(e) => setArticleForm({ ...articleForm, ticketLink: e.target.value })} placeholder="e.g. https://loket.com/..." />
+                        </div>
                       </div>
+
+                      {/* Gallery Upload Fields */}
                       <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="form-label">Lokasi Event</label>
-                        <input type="text" className="form-input" value={articleForm.eventLocation} onChange={(e) => setArticleForm({ ...articleForm, eventLocation: e.target.value })} placeholder="e.g. Gedung Kesenian Jakarta" />
-                      </div>
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="form-label">Tautan Beli Tiket</label>
-                        <input type="text" className="form-input" value={articleForm.ticketLink} onChange={(e) => setArticleForm({ ...articleForm, ticketLink: e.target.value })} placeholder="e.g. https://loket.com/..." />
+                        <label className="form-label">Galeri Gambar Show (Unggah Banyak)</label>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <label className="btn btn-secondary" style={{ padding: '0.6rem 1rem', cursor: 'pointer', margin: 0, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
+                            Pilih Beberapa File Gambar
+                            <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleUploadGalleryImages} />
+                          </label>
+                        </div>
+                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+                          {articleForm.galleryImages && articleForm.galleryImages.map((imgUrl, idx) => (
+                            <div key={idx} style={{ position: 'relative', width: '100px', height: '100px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                              <img src={imgUrl} alt={`Gallery Preview ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveGalleryImage(idx)}
+                                style={{
+                                  position: 'absolute',
+                                  top: '2px',
+                                  right: '2px',
+                                  background: 'rgba(239, 68, 68, 0.8)',
+                                  border: 'none',
+                                  color: 'white',
+                                  borderRadius: '50%',
+                                  width: '20px',
+                                  height: '20px',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '10px'
+                                }}
+                              >
+                                X
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
 
                   <div className="form-group" style={{ marginTop: '1.5rem' }}>
                     <label className="form-label">Konten Lengkap</label>
-                    <textarea required rows="10" className="form-textarea" style={{ fontFamily: 'var(--font-sans)' }} value={articleForm.content} onChange={(e) => setArticleForm({ ...articleForm, content: e.target.value })} placeholder="Isi artikel secara mendetail..."></textarea>
+                    <RichTextEditor value={articleForm.content} onChange={(val) => setArticleForm({ ...articleForm, content: val })} placeholder="Isi artikel secara mendetail..." />
                   </div>
 
                   <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>

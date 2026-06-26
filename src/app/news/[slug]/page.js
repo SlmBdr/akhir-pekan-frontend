@@ -79,9 +79,10 @@ export default function NewsDetailPage({ params: paramsPromise }) {
 
       {/* Article Content */}
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '4rem 2rem' }}>
-        <div style={{ fontSize: '1.1rem', lineHeight: '1.8', whiteSpace: 'pre-wrap' }}>
-          {article.content}
-        </div>
+        <div 
+          style={{ fontSize: '1.1rem', lineHeight: '1.8' }}
+          dangerouslySetInnerHTML={{ __html: article.content }}
+        />
 
         <div style={{ marginTop: '5rem', borderTop: '1px solid rgba(240, 240, 242, 0.05)', paddingTop: '2rem' }}>
           <Link href="/news" style={{ fontFamily: 'var(--font-serif)', color: 'var(--accent-gold)', letterSpacing: '0.1em', textTransform: 'uppercase', fontSize: '0.85rem' }}>

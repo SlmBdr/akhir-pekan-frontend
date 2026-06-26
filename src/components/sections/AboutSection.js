@@ -7,7 +7,7 @@ export default function AboutSection({ content }) {
         {title || 'About Us'}
       </div>
       <div className="about-intro-content">
-        {text && <p className="about-intro-text">{text}</p>}
+        {text && <div className="about-intro-text" dangerouslySetInnerHTML={{ __html: text }} />}
       </div>
     </section>
   );
