@@ -50,6 +50,9 @@ export default function AdminDashboardPage() {
     creditText: ''
   });
 
+  const [isSavingPage, setIsSavingPage] = useState(false);
+  const [isSavingArticle, setIsSavingArticle] = useState(false);
+
   // Global State Loader
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -330,39 +333,42 @@ export default function AdminDashboardPage() {
 
   const handleSavePage = async () => {
     if (!selectedPage) return;
+    setIsSavingPage(true);
 
     // Clone sections to prevent mutating state directly during upload
     const sectionsToSave = JSON.parse(JSON.stringify(editingSections));
 
-    // Upload any pending section background images to S3
-    for (const sec of sectionsToSave) {
-      const file = pendingPageUploads[sec.id];
-      if (file) {
-        try {
-          const formData = new FormData();
-          formData.append('file', file);
-          const res = await fetch(`${API_URL}/api/upload`, {
-            method: 'POST',
-            headers: getHeaders(false),
-            body: formData,
-            credentials: 'include'
-          });
-          const data = await res.json();
-          if (res.ok && data.success) {
-            sec.content.bgImage = data.url;
-          } else {
-            showNotification(`Gagal mengunggah gambar untuk section ${sec.type}`, 'error');
+    try {
+      // Upload any pending section background images to S3
+      for (const sec of sectionsToSave) {
+        const file = pendingPageUploads[sec.id];
+        if (file) {
+          try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await fetch(`${API_URL}/api/upload`, {
+              method: 'POST',
+              headers: getHeaders(false),
+              body: formData,
+              credentials: 'include'
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+              sec.content.bgImage = data.url;
+            } else {
+              showNotification(`Gagal mengunggah gambar untuk section ${sec.type}`, 'error');
+              setIsSavingPage(false);
+              return;
+            }
+          } catch (err) {
+            console.error('Section image upload error', err);
+            showNotification('Error saat mengunggah gambar section.', 'error');
+            setIsSavingPage(false);
             return;
           }
-        } catch (err) {
-          console.error('Section image upload error', err);
-          showNotification('Error saat mengunggah gambar section.', 'error');
-          return;
         }
       }
-    }
 
-    try {
       const res = await fetch(`${API_URL}/api/pages`, {
         method: 'POST',
         headers: getHeaders(),
@@ -386,6 +392,8 @@ export default function AdminDashboardPage() {
     } catch (err) {
       console.error('Failed to save page', err);
       showNotification('Error saat menghubungi server.', 'error');
+    } finally {
+      setIsSavingPage(false);
     }
   };
 
@@ -440,33 +448,36 @@ export default function AdminDashboardPage() {
 
   const handleSaveArticle = async (e) => {
     e.preventDefault();
+    setIsSavingArticle(true);
     let finalThumbnailUrl = articleForm.thumbnailUrl;
 
-    if (pendingArticleFile) {
-      try {
-        const formData = new FormData();
-        formData.append('file', pendingArticleFile);
-        const res = await fetch(`${API_URL}/api/upload`, {
-          method: 'POST',
-          headers: getHeaders(false),
-          body: formData,
-          credentials: 'include'
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          finalThumbnailUrl = data.url;
-        } else {
-          showNotification(data.error || 'Gagal mengunggah thumbnail.', 'error');
+    try {
+      if (pendingArticleFile) {
+        try {
+          const formData = new FormData();
+          formData.append('file', pendingArticleFile);
+          const res = await fetch(`${API_URL}/api/upload`, {
+            method: 'POST',
+            headers: getHeaders(false),
+            body: formData,
+            credentials: 'include'
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            finalThumbnailUrl = data.url;
+          } else {
+            showNotification(data.error || 'Gagal mengunggah thumbnail.', 'error');
+            setIsSavingArticle(false);
+            return;
+          }
+        } catch (err) {
+          console.error('Article image upload error', err);
+          showNotification('Error saat mengunggah thumbnail.', 'error');
+          setIsSavingArticle(false);
           return;
         }
-      } catch (err) {
-        console.error('Article image upload error', err);
-        showNotification('Error saat mengunggah thumbnail.', 'error');
-        return;
       }
-    }
 
-    try {
       const payload = {
         id: articleEditId,
         title: articleForm.title,
@@ -499,6 +510,8 @@ export default function AdminDashboardPage() {
     } catch (err) {
       console.error('Save article error', err);
       showNotification('Error saat menyimpan artikel.', 'error');
+    } finally {
+      setIsSavingArticle(false);
     }
   };
 
@@ -537,6 +550,11 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="admin-container">
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
       {/* SIDEBAR */}
       <aside className="admin-sidebar">
         <div className="sidebar-logo">
@@ -607,8 +625,22 @@ export default function AdminDashboardPage() {
                 <h1 className="admin-title">Page Builder</h1>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-gray)' }}>Susun layouts section dan kelola konten company profile</p>
               </div>
-              <button onClick={handleSavePage} className="btn btn-primary" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <Save size={16} /> Simpan Halaman
+              <button 
+                onClick={handleSavePage} 
+                disabled={isSavingPage}
+                className="btn btn-primary" 
+                style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}
+              >
+                {isSavingPage ? (
+                  <>
+                    <span className="spinner-border" style={{ width: '1rem', height: '1rem', border: '0.15em solid currentColor', borderRightColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.75s linear infinite' }}></span>
+                    <span>Menyimpan...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} /> Simpan Halaman
+                  </>
+                )}
               </button>
             </div>
 
@@ -856,8 +888,17 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-                    <button type="submit" className="btn btn-primary">Simpan Artikel</button>
-                    <button type="button" onClick={() => setShowArticleForm(false)} className="btn btn-secondary">Batal</button>
+                    <button type="submit" disabled={isSavingArticle} className="btn btn-primary" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      {isSavingArticle ? (
+                        <>
+                          <span className="spinner-border" style={{ width: '1rem', height: '1rem', border: '0.15em solid currentColor', borderRightColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.75s linear infinite' }}></span>
+                          <span>Menyimpan...</span>
+                        </>
+                      ) : (
+                        'Simpan Artikel'
+                      )}
+                    </button>
+                    <button type="button" disabled={isSavingArticle} onClick={() => setShowArticleForm(false)} className="btn btn-secondary">Batal</button>
                   </div>
                 </form>
               </div>
