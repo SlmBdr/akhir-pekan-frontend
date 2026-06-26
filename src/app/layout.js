@@ -4,8 +4,8 @@ import Footer from '@/components/Footer';
 import Script from 'next/script';
 
 export const metadata = {
-  title: 'Teater Akhir Pekan | Di mana Sinema Bertemu Panggung Teater',
-  description: 'Teater Akhir Pekan adalah kolektif seni pertunjukan modern yang memadukan keintiman panggung teater dengan estetika sinematik.',
+  title: 'Teater Akhir Pekan Laboratory',
+  description: 'Kolektif yang bertujuan untuk menjadi wadah eksplorasi dan kreasi seni pertunjukan modern .',
   keywords: 'teater, seni pertunjukan, akhir pekan, sinema, drama, lakon, teater jakarta',
 };
 
@@ -20,8 +20,8 @@ export default function RootLayout({ children }) {
           </main>
           <Footer />
         </div>
-        <Script 
-          src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js" 
+        <Script
+          src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js"
           strategy="afterInteractive"
         />
       </body>
