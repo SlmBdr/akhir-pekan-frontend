@@ -5,13 +5,7 @@ import { useState, useEffect } from 'react';
 
 export default function Footer() {
   const pathname = usePathname();
-  const [footerData, setFooterData] = useState({
-    bigText: 'Teater Akhir Pekan',
-    tagline: 'Di mana Sinema Bertemu Panggung Teater.',
-    subtagline: 'Kolektif seni pertunjukan modern yang memadukan keintiman teater dengan estetika film.',
-    copyrightText: `© ${new Date().getFullYear()} Teater Akhir Pekan. All rights reserved.`,
-    creditText: 'Designed with clarity & motion.',
-  });
+  const [footerData, setFooterData] = useState(null);
 
   useEffect(() => {
     // Don't fetch on admin pages
@@ -23,17 +17,12 @@ export default function Footer() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
         const res = await fetch(`${apiUrl}/api/footer`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data) {
-            setFooterData({
-              bigText: data.bigText || 'Teater Akhir Pekan',
-              tagline: data.tagline || 'Di mana Sinema Bertemu Panggung Teater.',
-              subtagline: data.subtagline || 'Kolektif seni pertunjukan modern yang memadukan keintiman teater dengan estetika film.',
-              copyrightText: data.copyrightText || `© ${new Date().getFullYear()} Teater Akhir Pekan. All rights reserved.`,
-              creditText: data.creditText || 'Designed with clarity & motion.',
-            });
-          }
+        if (!res.ok) {
+          throw new Error(`Failed to fetch footer. Status: ${res.status}`);
+        }
+        const data = await res.json();
+        if (data) {
+          setFooterData(data);
         }
       } catch (err) {
         console.error('Failed to fetch footer data:', err);
@@ -45,6 +34,10 @@ export default function Footer() {
 
   // Don't show public footer on admin pages
   if (pathname?.startsWith('/admin')) {
+    return null;
+  }
+
+  if (!footerData) {
     return null;
   }
 

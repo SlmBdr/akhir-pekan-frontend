@@ -6,14 +6,7 @@ import { Menu, X } from 'lucide-react';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const [menus, setMenus] = useState([
-    { title: 'Home', slug: 'home' },
-    { title: 'About Us', slug: 'about-us' },
-    { title: 'Our Show', slug: 'our-show' },
-    { title: 'News', slug: 'news' },
-    { title: 'Collab With Us', slug: 'collab' },
-    { title: 'Contact', slug: 'contact' },
-  ]);
+  const [menus, setMenus] = useState([]);
   
   const pathname = usePathname();
 
@@ -23,12 +16,15 @@ export default function Navbar() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
         const res = await fetch(`${apiUrl}/api/menus`);
+        if (!res.ok) {
+          throw new Error(`Failed to fetch menus. Status: ${res.status}`);
+        }
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setMenus(data);
         }
       } catch (err) {
-        console.error('Failed to fetch menus from backend, using defaults', err);
+        console.error('Failed to fetch menus from backend:', err);
       }
     };
     fetchMenus();
