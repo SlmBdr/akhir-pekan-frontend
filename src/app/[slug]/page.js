@@ -15,11 +15,21 @@ export default function DynamicPage({ params: paramsPromise }) {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
         const res = await fetch(`${apiUrl}/api/pages/public/${slug}`);
         if (!res.ok) {
-          throw new Error(`Failed to load page. Server returned status ${res.status}`);
+          if (res.status === 404) {
+            throw new Error('Halaman tidak ditemukan');
+          }
+          throw new Error(`Gagal memuat halaman. Status server: ${res.status}`);
         }
-        const data = await res.json();
-        if (!data) {
-          throw new Error("No page data returned from backend");
+        
+        let data;
+        try {
+          data = await res.json();
+        } catch (jsonErr) {
+          throw new Error('Halaman tidak ditemukan');
+        }
+        
+        if (!data || data.error) {
+          throw new Error('Halaman tidak ditemukan');
         }
         setPage(data);
       } catch (err) {
